@@ -67,25 +67,30 @@ async fn list_objects(client: &Client, bucket: &str, prefix: &str) -> Vec<String
 
     match resp {
         Ok(output) => {
+            let mut prefixes: Vec<String> = Vec::with_capacity(1000);
             let common_prefixes = output.common_prefixes();
-            if common_prefixes.is_none() {
-                // ファイル一覧を取得
-                let contents = output.contents().unwrap();
-                let mut prefixes = Vec::with_capacity(contents.len());
-                for object in contents {
-                    let prefix = object.key().unwrap();
-                    prefixes.push(prefix.to_string());
-                }
-                return prefixes;
-            } else {
+            let contents = output.contents();
+
+            if !common_prefixes.is_none() {
                 // ディレクトリ一覧を取得
-                let mut prefixes = Vec::with_capacity(common_prefixes.unwrap().len());
                 for object in common_prefixes.unwrap() {
                     let prefix = object.prefix().unwrap();
                     prefixes.push(prefix.to_string());
                 }
-                return prefixes;
             }
+
+            if !contents.is_none() {
+                // ファイル一覧を取得
+                for object in contents.unwrap() {
+                    let prefix = object.key().unwrap();
+                    if prefix.ends_with("/") {
+                        continue;
+                    }
+                    prefixes.push(prefix.to_string());
+                }
+            }
+
+            return prefixes;
         }
         Err(error) => {
             eprintln!("エラー: {}", error);

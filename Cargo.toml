@@ -1,0 +1,20 @@
+[package]
+name = "s3_search"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+readme = "./README.md"
+repository = "https://github.com/shoot16625/s3_search"
+
+[[bin]]
+name = "s3s"
+path = "src/main.rs"
+
+[dependencies]
+aws-config = "0.55.2"
+aws-sdk-s3 = "0.27.0"
+aws-types = "0.55.2"
+clap = { version = "4.2.7", features = ["derive"] }
+cursive = "0.20.0"
+dialoguer = { version = "0.10.4", features = ["fuzzy-select"] }
+tokio = { version = "1", features = ["full"] }

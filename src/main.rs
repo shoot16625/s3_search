@@ -100,8 +100,17 @@ async fn list_objects(client: &Client, bucket: &str, prefix: &str) -> Vec<String
 }
 
 /// オブジェクトが一覧の取得と選択
-async fn select_object(client: &Client, bucket: &str, prefix: &str) -> String {
+async fn select_object(client: &Client, bucket: &str, prefix: &str) -> (String, bool) {
     let objects = list_objects(&client, bucket, prefix).await;
+    if objects.is_empty() {
+        let mut s = prefix.to_string();
+        if prefix.ends_with("/") {
+            // フォルダ内にファイルが一つもない場合は、フォルダ名を返す
+            s.pop();
+            return (s, true);
+        }
+        return (s, false);
+    }
 
     let prefixes: Vec<&str> = objects.iter().map(|p| p.as_str()).collect();
     let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
@@ -110,19 +119,29 @@ async fn select_object(client: &Client, bucket: &str, prefix: &str) -> String {
         .interact();
 
     let selected_prefix = prefixes[selection.unwrap()];
-    return selected_prefix.to_string();
+    return (selected_prefix.to_string(), false);
 }
 
 /// AWS Management Console で表示するための URI を作成
-async fn make_uri(bucket: &str, prefix: &str, region: &str) -> String {
-    if prefix.ends_with("/") {
+async fn make_uri(bucket: &str, prefix: &str, region: &str, is_dir: bool) -> String {
+    if prefix.ends_with("/") || prefix.is_empty() {
         return String::new();
     }
 
-    let uri = format!(
-        "https://s3.console.aws.amazon.com/s3/object/{}?prefix={}&region={}",
-        bucket, prefix, region
-    );
+    let uri: String;
+    if is_dir {
+        uri = format!(
+            // オブジェクト一覧に飛ばす
+            "https://s3.console.aws.amazon.com/s3/buckets/{}?prefix={}/&region={}",
+            bucket, prefix, region
+        );
+    } else {
+        uri = format!(
+            "https://s3.console.aws.amazon.com/s3/object/{}?prefix={}&region={}",
+            bucket, prefix, region
+        );
+    }
+
     return uri;
 }
 
@@ -136,12 +155,13 @@ async fn main() -> Result<(), Error> {
     let bucket = select_bucket(&client).await;
 
     let mut prefix = String::new();
+    let mut is_dir: bool;
     let mut uri: String;
     loop {
         // 1階層下のオブジェクト一覧を表示・選択
         let current_input = prefix.as_str();
-        prefix = select_object(&client, bucket.as_str(), current_input).await;
-        uri = make_uri(bucket.as_str(), &prefix, region).await;
+        (prefix, is_dir) = select_object(&client, bucket.as_str(), current_input).await;
+        uri = make_uri(bucket.as_str(), &prefix, region, is_dir).await;
         if !uri.is_empty() {
             break;
         }

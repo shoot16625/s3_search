@@ -14,7 +14,7 @@ path = "src/main.rs"
 aws-config = "0.55.2"
 aws-sdk-s3 = "0.27.0"
 aws-types = "0.55.2"
-clap = "4.2.7"
+clap = { version = "4.2.7", features = ["derive"] }
 cursive = "0.20.0"
 dialoguer = { version = "0.10.4", features = ["fuzzy-select"] }
 tokio = { version = "1", features = ["full"] }

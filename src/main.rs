@@ -6,7 +6,7 @@ use dialoguer::{theme::ColorfulTheme, FuzzySelect};
 #[derive(Parser)]
 struct Args {
     /// AWS Region
-    #[arg(short, long, default_value = "ap-northeast-1")]
+    #[arg(short, long, default_value = "ap-northeast-1")] // WISH:環境変数も考慮できるとよい
     region: String,
 
     /// デバッグモード
@@ -55,7 +55,7 @@ async fn select_bucket(client: &Client) -> String {
 }
 
 /// バケット内のオブジェクト一覧を取得
-/// 最大1,000件までしか取得できない
+/// 最大1,000件までしか取得できない（WISH:クロールできるとよい）
 async fn list_objects(client: &Client, bucket: &str, prefix: &str) -> Vec<String> {
     let resp = client
         .list_objects_v2()

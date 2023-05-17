@@ -2,11 +2,21 @@ use aws_sdk_s3::{Client, Error};
 use aws_types::region::Region;
 use clap::Parser;
 use dialoguer::{theme::ColorfulTheme, FuzzySelect};
+use envconfig::Envconfig;
+use std::process;
+use std::{thread, time};
+
+#[derive(Envconfig)]
+struct Config {
+    /// AWS Region
+    #[envconfig(from = "AWS_DEFAULT_REGION", default = "ap-northeast-1")]
+    region: String,
+}
 
 #[derive(Parser)]
 struct Args {
     /// AWS Region
-    #[arg(short, long, default_value = "ap-northeast-1")] // WISH:環境変数も考慮できるとよい
+    #[arg(short, long, default_value = "")]
     region: String,
 
     /// デバッグモード
@@ -147,8 +157,21 @@ async fn make_uri(bucket: &str, prefix: &str, region: &str, is_dir: bool) -> Str
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    // 環境変数
+    let config = match Config::init_from_env() {
+        Ok(val) => val,
+        Err(err) => {
+            println!("{}", err);
+            process::exit(1);
+        }
+    };
+
+    // コマンドライン引数（優先）
     let args = Args::parse();
-    let region = &args.region;
+    let mut region = &args.region;
+    if region.is_empty() {
+        region = &config.region;
+    }
 
     // バケット一覧から対象のバケットを選択
     let client = prepare_client(region).await;

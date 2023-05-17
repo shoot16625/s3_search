@@ -1,4 +1,4 @@
-use aws_sdk_s3::{Client, Error};
+use aws_sdk_s3::Client;
 use aws_types::region::Region;
 use clap::Parser;
 use dialoguer::{theme::ColorfulTheme, FuzzySelect};
@@ -30,7 +30,7 @@ async fn prepare_client(region: &str) -> Client {
         .region(Region::new(region.to_string()))
         .load()
         .await;
-    return Client::new(&config);
+    Client::new(&config)
 }
 
 /// バケット名一覧を取得
@@ -44,25 +44,24 @@ async fn list_buckets(client: &Client) -> Vec<String> {
                 let bucket = object.name().unwrap();
                 buckets.push(bucket.to_string());
             }
-            return buckets;
+            buckets
         }
         Err(error) => {
             eprintln!("エラー: {}", error);
             thread::sleep(time::Duration::from_millis(1000));
-            return Vec::new();
+            Vec::new()
         }
     }
 }
 
 /// バケット一覧の取得と選択
 async fn select_bucket(client: &Client) -> String {
-    let buckets = list_buckets(&client).await;
+    let buckets = list_buckets(client).await;
     let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
         .items(&buckets)
         .default(0)
         .interact();
-    let bucket = buckets[selection.unwrap()].to_string();
-    return bucket;
+    buckets[selection.unwrap()].to_string()
 }
 
 /// バケット内のオブジェクト一覧を取得
@@ -72,7 +71,7 @@ async fn list_objects(client: &Client, bucket: &str, prefix: &str) -> Vec<String
         .list_objects_v2()
         .bucket(bucket)
         .prefix(prefix)
-        .delimiter("/") // 1階層のみ対象にする
+        .delimiter('/') // 1階層のみ対象にする
         .send()
         .await;
 
@@ -82,7 +81,7 @@ async fn list_objects(client: &Client, bucket: &str, prefix: &str) -> Vec<String
             let common_prefixes = output.common_prefixes();
             let contents = output.contents();
 
-            if !common_prefixes.is_none() {
+            if common_prefixes.is_some() {
                 // ディレクトリ一覧を取得
                 for object in common_prefixes.unwrap() {
                     let prefix = object.prefix().unwrap();
@@ -90,23 +89,23 @@ async fn list_objects(client: &Client, bucket: &str, prefix: &str) -> Vec<String
                 }
             }
 
-            if !contents.is_none() {
+            if contents.is_some() {
                 // ファイル一覧を取得
                 for object in contents.unwrap() {
                     let prefix = object.key().unwrap();
-                    if prefix.ends_with("/") {
+                    if prefix.ends_with('/') {
                         continue;
                     }
                     prefixes.push(prefix.to_string());
                 }
             }
 
-            return prefixes;
+            prefixes
         }
         Err(error) => {
             eprintln!("エラー: {}", error);
             thread::sleep(time::Duration::from_millis(1000));
-            return Vec::new();
+            Vec::new()
         }
     }
 }
@@ -114,10 +113,10 @@ async fn list_objects(client: &Client, bucket: &str, prefix: &str) -> Vec<String
 /// オブジェクトが一覧の取得と選択
 async fn select_object(client: &Client, bucket: &str, prefix: &str) -> (String, bool) {
     let mut is_dir: bool = false;
-    let objects = list_objects(&client, bucket, prefix).await;
+    let objects = list_objects(client, bucket, prefix).await;
     if objects.is_empty() {
         let mut _prefix = prefix.to_string();
-        if prefix.ends_with("/") {
+        if prefix.ends_with('/') {
             // フォルダ内にファイルが一つもない場合は、フォルダ名を返す
             _prefix.pop();
             is_dir = true;
@@ -133,35 +132,32 @@ async fn select_object(client: &Client, bucket: &str, prefix: &str) -> (String, 
         .interact();
 
     let selected_prefix = prefixes[selection.unwrap()];
-    return (selected_prefix.to_string(), is_dir);
+    (selected_prefix.to_string(), is_dir)
 }
 
 /// AWS Management Console で表示するための URI を作成
 async fn make_uri(bucket: &str, prefix: &str, region: &str, is_dir: bool) -> String {
-    if prefix.ends_with("/") || prefix.is_empty() {
+    if prefix.ends_with('/') || prefix.is_empty() {
         return String::new();
     }
 
-    let uri: String;
     if is_dir {
-        uri = format!(
+        format!(
             // オブジェクト一覧に飛ばす
             "https://s3.console.aws.amazon.com/s3/buckets/{}?prefix={}/&region={}",
             bucket, prefix, region
-        );
+        )
     } else {
-        uri = format!(
+        format!(
             // オブジェクト詳細画面に飛ばす
             "https://s3.console.aws.amazon.com/s3/object/{}?prefix={}&region={}",
             bucket, prefix, region
-        );
+        )
     }
-
-    return uri;
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() {
     // 環境変数
     let config = match Config::init_from_env() {
         Ok(val) => val,
@@ -197,6 +193,4 @@ async fn main() -> Result<(), Error> {
 
     // URIを表示
     println!("URI => {}", uri);
-
-    Ok(())
 }

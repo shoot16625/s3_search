@@ -48,6 +48,7 @@ async fn list_buckets(client: &Client) -> Vec<String> {
         }
         Err(error) => {
             eprintln!("エラー: {}", error);
+            thread::sleep(time::Duration::from_millis(1000));
             return Vec::new();
         }
     }
@@ -104,6 +105,7 @@ async fn list_objects(client: &Client, bucket: &str, prefix: &str) -> Vec<String
         }
         Err(error) => {
             eprintln!("エラー: {}", error);
+            thread::sleep(time::Duration::from_millis(1000));
             return Vec::new();
         }
     }
@@ -111,15 +113,17 @@ async fn list_objects(client: &Client, bucket: &str, prefix: &str) -> Vec<String
 
 /// オブジェクトが一覧の取得と選択
 async fn select_object(client: &Client, bucket: &str, prefix: &str) -> (String, bool) {
+    let mut is_dir: bool = false;
     let objects = list_objects(&client, bucket, prefix).await;
     if objects.is_empty() {
-        let mut s = prefix.to_string();
+        let mut _prefix = prefix.to_string();
         if prefix.ends_with("/") {
             // フォルダ内にファイルが一つもない場合は、フォルダ名を返す
-            s.pop();
-            return (s, true);
+            _prefix.pop();
+            is_dir = true;
+            return (_prefix, is_dir);
         }
-        return (s, false);
+        return (_prefix, is_dir);
     }
 
     let prefixes: Vec<&str> = objects.iter().map(|p| p.as_str()).collect();
@@ -129,7 +133,7 @@ async fn select_object(client: &Client, bucket: &str, prefix: &str) -> (String, 
         .interact();
 
     let selected_prefix = prefixes[selection.unwrap()];
-    return (selected_prefix.to_string(), false);
+    return (selected_prefix.to_string(), is_dir);
 }
 
 /// AWS Management Console で表示するための URI を作成
@@ -147,6 +151,7 @@ async fn make_uri(bucket: &str, prefix: &str, region: &str, is_dir: bool) -> Str
         );
     } else {
         uri = format!(
+            // オブジェクト詳細画面に飛ばす
             "https://s3.console.aws.amazon.com/s3/object/{}?prefix={}&region={}",
             bucket, prefix, region
         );
@@ -191,7 +196,7 @@ async fn main() -> Result<(), Error> {
     }
 
     // URIを表示
-    println!("URI: {}", uri);
+    println!("URI => {}", uri);
 
     Ok(())
 }

@@ -15,7 +15,6 @@ aws-config = "0.55.2"
 aws-sdk-s3 = "0.27.0"
 aws-types = "0.55.2"
 clap = { version = "4.2.7", features = ["derive"] }
-cursive = "0.20.0"
 dialoguer = { version = "0.10.4", features = ["fuzzy-select"] }
 envconfig = "0.10.0"
 envconfig_derive = "0.10.0"

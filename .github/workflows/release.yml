@@ -86,8 +86,8 @@ jobs:
           files: |
             target/${{ matrix.target }}/release/s3_search-${{ matrix.artifact_prefix }}.tar.gz
             target/${{ matrix.target }}/release/s3_search-${{ matrix.artifact_prefix }}.sha256
-            tag_name: refs/tag/${{ needs.tag.outputs.tag_name }}
-            env:
+          tag_name: ${{ needs.tag.outputs.tag_name }}
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   set-release-note:
@@ -113,7 +113,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           body: ${{steps.create-release-note.outputs.result}}
-          tag_name: refs/tag/${{ needs.tag.outputs.tag_name }}
+          tag_name: ${{ needs.tag.outputs.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

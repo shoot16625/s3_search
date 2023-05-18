@@ -28,10 +28,10 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Checkout Latest Tag
-        run: |
-          git fetch --prune --unshallow
-          git checkout $(git describe --tags --abbrev=0)
+        run: git checkout $(git describe --tags --abbrev=0)
       - name: Installing Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -88,9 +88,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Checkout Latest Tag
-        run: |
-          git fetch --prune --unshallow
-          git checkout $(git describe --tags --abbrev=0)
+        run: git checkout $(git describe --tags --abbrev=0)
       - run: npm install simple-git
       - uses: actions/github-script@v3
         id: create-release-note
@@ -113,11 +111,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@master
-      - name: Checkout Latest Tag
-        run: |
-          git fetch --prune --unshallow
-          git checkout $(git describe --tags --abbrev=0)
+      - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable

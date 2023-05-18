@@ -6,6 +6,17 @@ on:
     types: ["completed"]
 
 jobs:
+  tag:
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.get-tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - id: get-tag
+        run: echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+
   publish:
     strategy:
       matrix:
@@ -25,13 +36,12 @@ jobs:
             target: x86_64-pc-windows-msvc
             binary_postfix: ".exe"
     runs-on: ${{ matrix.os }}
+    needs: tag
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Checkout Latest Tag
-        run: git checkout $(git describe --tags --abbrev=0)
       - name: Installing Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -76,19 +86,19 @@ jobs:
           files: |
             target/${{ matrix.target }}/release/s3_search-${{ matrix.artifact_prefix }}.tar.gz
             target/${{ matrix.target }}/release/s3_search-${{ matrix.artifact_prefix }}.sha256
-        env:
+            tag_name: refs/tag/${{ needs.tag.outputs.tag_name }}
+            env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   set-release-note:
     name: Set Relase Note
     runs-on: ubuntu-latest
+    needs: tag
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Checkout Latest Tag
-        run: git checkout $(git describe --tags --abbrev=0)
       - run: npm install simple-git
       - uses: actions/github-script@v3
         id: create-release-note
@@ -103,6 +113,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           body: ${{steps.create-release-note.outputs.result}}
+          tag_name: refs/tag/${{ needs.tag.outputs.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

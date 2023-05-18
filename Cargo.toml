@@ -5,6 +5,9 @@ edition = "2021"
 license = "MIT"
 readme = "./README.md"
 repository = "https://github.com/shoot16625/s3_search"
+categories = ["command-line-utilities"]
+keywords = ["s3","aws","cli", "search"]
+description = "Fuzzy search interactively for AWS S3. named s3s"
 
 [[bin]]
 name = "s3s"

@@ -91,7 +91,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   set-release-note:
-    name: Set Relase Note
+    name: Set Release Note
     runs-on: ubuntu-latest
     needs: tag
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
